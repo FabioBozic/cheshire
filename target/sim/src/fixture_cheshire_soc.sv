@@ -61,6 +61,9 @@ module cheshire_soc_fixture;
   logic [1:0] boot_mode;
   logic       rtc;
 
+  logic       irq;
+   
+
   axi_llc_req_t axi_llc_mst_req;
   axi_llc_rsp_t axi_llc_mst_rsp;
 
@@ -122,7 +125,7 @@ module cheshire_soc_fixture;
     .axi_ext_slv_rsp_i  ( '0 ),
     .reg_ext_slv_req_o  ( ),
     .reg_ext_slv_rsp_i  ( '0 ),
-    .intr_ext_i         ( '0 ),
+    .intr_ext_i         ( irq ),
     .meip_ext_o         ( ),
     .seip_ext_o         ( ),
     .mtip_ext_o         ( ),

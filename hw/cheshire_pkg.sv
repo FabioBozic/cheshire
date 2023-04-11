@@ -392,6 +392,7 @@ package cheshire_pkg;
     RegMaxWriteTxns   : 8,
     RegAmoNumCuts     : 1,
     RegAmoPostCut     : 1,
+    NumExtIntrs       : 1,
     // RTC
     RtcFreq           : 32768,
     // Features

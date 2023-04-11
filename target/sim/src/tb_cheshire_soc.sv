@@ -56,6 +56,18 @@ module tb_cheshire_soc;
     end
 
     $finish;
-  end
+  end // initial begin
 
+  initial begin : irq
+     repeat(20)
+       @(posedge fix.rtc)
+     fix.irq = 1'b0;
+     repeat(5)
+       @(posedge fix.clk)
+     fix.irq = 1'b1;
+     repeat(5)
+       @(posedge fix.clk)
+     fix.irq = 1'b0;
+  end
+     
 endmodule

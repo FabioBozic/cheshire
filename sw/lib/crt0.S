@@ -206,7 +206,7 @@ _trap_handler_wrap:
     sd t5, 8(sp)
     sd t6, 0(sp)
 
-    jal trap_vector
+    jal x1, mbox_irq_handler //j trap_vector
 
     ld ra, 120(sp)
     ld t0, 112(sp)
@@ -229,8 +229,20 @@ _trap_handler_wrap:
 
 .global trap_vector
 .weak trap_vector
-trap_vector:
-    j trap_vector
+//trap_vector:
+//    j trap_vector
+  
+mbox_irq_handler: 
+    li a0, 0x04200004 // Irq claim reg address in PLIC
+    li a1, 0x40001024 // Mbox Irq reg address
+    li t0, 51         // mbox ID in irq vector connected to PLIc
+
+    // must read the completion reg and check the ID matches with mbox IRQ
+    lw  t2, 0(a0)
+    bne t2, t0, mbox_irq_handler
+  
+    sw t0, 0(a0)      // Claim IRQ
+    ret   
 
 // If main returns, we end up here.
 // Save the return value to scratch register 2 and wait forever.
