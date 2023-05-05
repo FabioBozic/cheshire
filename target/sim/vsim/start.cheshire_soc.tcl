@@ -8,6 +8,7 @@
 # Paul Scheffler <paulsc@iis.ee.ethz.ch>
 
 set TESTBENCH tb_cheshire_soc
+set BINARY ../../../sw/tests/helloworld.dram.elf
 
 # Set voptargs only if not already set to make overridable.
 # Default on fast simulation flags.
