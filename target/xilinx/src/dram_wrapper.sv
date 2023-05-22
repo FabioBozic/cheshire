@@ -1,3 +1,10 @@
+// Copyright 2022 ETH Zurich and University of Bologna.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
+//
+// Cyril Koenig <cykoenig@iis.ee.ethz.ch>
+
+
 `include "cheshire/typedef.svh"
 `include "phy_definitions.svh"
 `include "common_cells/registers.svh"
@@ -377,8 +384,6 @@ xlnx_mig_ddr4 i_dram (
   assign dram_clk_o = dram_axi_clk;
 
 xlnx_mig_7_ddr3 i_dram (
-    .sys_clk_p           ( sysclk_p                      ),
-    .sys_clk_n           ( sysclk_n                      ),
     .sys_rst             ( sys_rst                       ),
     .ui_clk              ( dram_axi_clk                  ),
     .ui_clk_sync_rst     ( dram_rst_o                    ),
@@ -390,7 +395,7 @@ xlnx_mig_7_ddr3 i_dram (
     .app_ref_ack         (                               ), // keep open
     .app_zq_ack          (                               ), // keep open
     .aresetn             ( soc_resetn_i                  ),
-    .s_axi_awid          ( spill_dram_req.aw.id          ),
+    .s_axi_awid          ( spill_dram_req_awid           ),
     .s_axi_awaddr        ( spill_dram_req.aw.addr[29:0]  ),
     .s_axi_awlen         ( spill_dram_req.aw.len         ),
     .s_axi_awsize        ( spill_dram_req.aw.size        ),
@@ -407,10 +412,10 @@ xlnx_mig_7_ddr3 i_dram (
     .s_axi_wvalid        ( spill_dram_req.w_valid        ),
     .s_axi_wready        ( spill_dram_rsp.w_ready        ),
     .s_axi_bready        ( spill_dram_req.b_ready        ),
-    .s_axi_bid           ( spill_dram_rsp.b.id           ),
+    .s_axi_bid           ( spill_dram_rsp_bid            ),
     .s_axi_bresp         ( spill_dram_rsp.b.resp         ),
     .s_axi_bvalid        ( spill_dram_rsp.b_valid        ),
-    .s_axi_arid          ( spill_dram_req.ar.id          ),
+    .s_axi_arid          ( spill_dram_req_arid           ),
     .s_axi_araddr        ( spill_dram_req.ar.addr[29:0]  ),
     .s_axi_arlen         ( spill_dram_req.ar.len         ),
     .s_axi_arsize        ( spill_dram_req.ar.size        ),
@@ -422,13 +427,15 @@ xlnx_mig_7_ddr3 i_dram (
     .s_axi_arvalid       ( spill_dram_req.ar_valid       ),
     .s_axi_arready       ( spill_dram_rsp.ar_ready       ),
     .s_axi_rready        ( spill_dram_req.r_ready        ),
-    .s_axi_rid           ( spill_dram_rsp.r.id           ),
+    .s_axi_rid           ( spill_dram_rsp_rid            ),
     .s_axi_rdata         ( spill_dram_rsp.r.data         ),
     .s_axi_rresp         ( spill_dram_rsp.r.resp         ),
     .s_axi_rlast         ( spill_dram_rsp.r.last         ),
     .s_axi_rvalid        ( spill_dram_rsp.r_valid        ),
     .init_calib_complete (                               ),  // keep open
-    .device_temp         (                               )   // keep open
+    .device_temp         (                               ),  // keep open
+    // Phy
+    .*
   );
 `endif // USE_DDR3
 
