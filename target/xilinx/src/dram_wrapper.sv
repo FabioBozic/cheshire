@@ -51,6 +51,7 @@ module dram_wrapper
     bit     EnCDC;
     bit     EnSpill1;
     integer IdWidth;
+    integer AddrWidth;
     integer DataWidth;
     integer ProbeWidth;
   } dram_cfg_t;
@@ -62,6 +63,7 @@ module dram_wrapper
     EnCDC         : 1, // 333 MHz
     EnSpill1      : 1,
     IdWidth       : 4,
+    AddrWidth     : 32,
     DataWidth     : 512,
     ProbeWidth    : 64
   };
@@ -74,6 +76,7 @@ module dram_wrapper
     EnCDC         : 1, // 200 MHz
     EnSpill1      : 1,
     IdWidth       : 6,
+    AddrWidth     : 30,
     DataWidth     : 64,
     ProbeWidth    : 8
   };
@@ -249,28 +252,35 @@ module dram_wrapper
   // ID resizer  //
   /////////////////
 
+  // Padding when SoC id > DDR id
   localparam IdPadding = $bits(spill_dram_req.aw.id) - cfg.IdWidth;
 
-  logic [cfg.IdWidth-1:0] spill_dram_req_awid  ;
-  logic [cfg.IdWidth-1:0] spill_dram_req_arid  ;
-  logic [$bits(spill_dram_req.aw.id)-1:0] spill_dram_rsp_bid, spill_dram_rsp_bid_d , spill_dram_rsp_bid_q ;
-  logic [$bits(spill_dram_req.ar.id)-1:0] spill_dram_rsp_rid, spill_dram_rsp_rid_d , spill_dram_rsp_rid_q ;
-
+  // Resize awid and arid before sending to the DDR
+  logic [cfg.IdWidth-1:0] spill_dram_req_awid, spill_dram_rsp_bid;
+  logic [cfg.IdWidth-1:0] spill_dram_req_arid, spill_dram_rsp_rid;
+  // Registers to prepare bid and rid
+  logic [$bits(spill_dram_req.aw.id)-1:0] spill_dram_rsp_bid_d, spill_dram_rsp_bid_q;
+  logic [$bits(spill_dram_req.ar.id)-1:0] spill_dram_rsp_rid_d, spill_dram_rsp_rid_q;
   `FFAR(spill_dram_rsp_bid_q, spill_dram_rsp_bid_d, '0, dram_axi_clk, dram_rst_o);
   `FFAR(spill_dram_rsp_rid_q, spill_dram_rsp_rid_d, '0, dram_axi_clk, dram_rst_o);
 
+  // Process ids
   generate
-  if (cfg.IdWidth < $bits(spill_dram_req.ar.id))
+  if (IdPadding > 0)
   begin
-    assign spill_dram_rsp_rid_d = spill_dram_req.ar_valid ? spill_dram_req.ar.id : spill_dram_rsp_rid_q;
-    assign spill_dram_rsp_bid_d = spill_dram_req.aw_valid ? spill_dram_req.aw.id : spill_dram_rsp_bid_q;
+    // Send rid and bid to SoC
     assign spill_dram_rsp.r.id = spill_dram_rsp.r_valid ? { {IdPadding{1'b0}}, spill_dram_rsp_rid_q} : '0;
     assign spill_dram_rsp.b.id = spill_dram_rsp.b_valid ? { {IdPadding{1'b0}}, spill_dram_rsp_bid_q} : '0;
+    // Sample rid and bid from arid and awid
+    assign spill_dram_rsp_rid_d = spill_dram_req.ar_valid ? spill_dram_req.ar.id : spill_dram_rsp_rid_q;
+    assign spill_dram_rsp_bid_d = spill_dram_req.aw_valid ? spill_dram_req.aw.id : spill_dram_rsp_bid_q;
+    // Resize arid and awid for DDR
     assign spill_dram_req_arid = spill_dram_req.ar.id[cfg.IdWidth-1:0];
     assign spill_dram_req_awid = spill_dram_req.aw.id[cfg.IdWidth-1:0];
   end
   else
   begin
+    // Forward arid awid rid bid to and from DDR
     assign spill_dram_req_arid = spill_dram_req.ar.id;
     assign spill_dram_req_awid = spill_dram_req.aw.id;
     assign spill_dram_rsp.r.id = spill_dram_rsp_rid;
@@ -280,23 +290,24 @@ module dram_wrapper
 
 
   ///////////////////////
+  // User and address  //
+  ///////////////////////
+  
+  assign spill_dram_rsp.b.user = '0;
+  assign spill_dram_rsp.r.user = '0;
+
+  logic [cfg.AddrWidth-1:0] spill_dram_req_awaddr;
+  logic [cfg.AddrWidth-1:0] spill_dram_req_araddr;
+
+  assign spill_dram_req_awaddr = spill_dram_req.aw.addr[cfg.AddrWidth-1:0];
+  assign spill_dram_req_araddr = spill_dram_req.ar.addr[cfg.AddrWidth-1:0];
+
+
+  ///////////////////////
   // Instianciate DDR4 //
   ///////////////////////
 
 `ifdef USE_DDR4
-
-  // Resize addresses and IDs
-
-  logic [31:0] spill_dram_req_awaddr;
-  logic [31:0] spill_dram_req_araddr;
-
-  assign spill_dram_req_awaddr = spill_dram_req.aw.addr[31:0];
-  assign spill_dram_req_araddr = spill_dram_req.ar.addr[31:0];
-
-  assign spill_dram_rsp.b.user = '0;
-  assign spill_dram_rsp.r.user = '0;
-
-  // Instanciate RAM
 
 xlnx_mig_ddr4 i_dram (
     // Rst
@@ -371,6 +382,7 @@ xlnx_mig_ddr4 i_dram (
 );
 
 `endif // USE_DDR4
+
 
 
   ///////////////////////

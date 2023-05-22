@@ -9,7 +9,7 @@ BENDER       ?= bender
 
 PROJECT      ?= cheshire
 # {vcu128, genesys2}
-BOARD        ?= vcu128
+BOARD        ?= genesys2
 ip-dir       := xilinx
 
 # Select board specific variables
