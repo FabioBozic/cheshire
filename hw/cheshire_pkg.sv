@@ -345,7 +345,7 @@ package cheshire_pkg;
     if (cfg.SerialLink) begin i++; ret.slink  = i; r++; ret.map[r] = '{i, AmSlink, AmSlink +'h1000}; end
     if (cfg.Vga)      begin i++; ret.vga      = i; r++; ret.map[r] = '{i, 'h0300_7000, 'h0300_8000}; end
     if (cfg.AxiRt)    begin i++; ret.axirt    = i; r++; ret.map[r] = '{i, 'h0300_8000, 'h0300_9000}; end
-    if (cfg.Clic)     begin i++; ret.clic     = i; r++; ret.map[r] = '{i, 'h0400_4000, 'h0800_0000}; end
+    if (cfg.Clic)     begin i++; ret.clic     = i; r++; ret.map[r] = '{i, 'h020c_4000, 'h0210_0000}; end
     if (cfg.IrqRouter) begin i++; ret.irq_router = i; r++; ret.map[r] = '{i, 'h0210_0000, 'h0214_0000}; end
     i++; r++;
     ret.ext_base  = i;
