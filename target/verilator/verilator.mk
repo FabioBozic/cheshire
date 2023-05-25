@@ -38,6 +38,8 @@ BENDER_SCRIPT = $(shell bender script verilator -t sim -t cv64a6_imafdc_sv39 -t 
 # VERILATOR_INPUT = $(VERILATOR_SRC_PATH)/cheshire_testharness.sv
 VERILATOR_TOPMODULE = --top-module cheshire_testharness
 
+VERILATOR_CFLAGS = -CFLAGS "-D_GLIBCXX_USE_CXX11_ABI=0"
+
 # Project variables
 TOP_DESIGN	= cheshire_testharness
 PICKLE_FILE := $(CHS_ROOT)/target/verilator/build/$(TOP_DESIGN).pickle.sv
@@ -66,6 +68,7 @@ chs-verilate-command := \
 	$(VERILATOR_TOPMODULE) \
 	$(VERILATOR_EXE) \
 	$(VERILATOR_CFILES) \
+	$(VERILATOR_CFLAGS) \
 	$(VERILATOR_OUTPUT)
 
 chs-verilate: chs-verilate-pickle
