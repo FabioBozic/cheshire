@@ -47,12 +47,12 @@ static void cycle_start(std::shared_ptr<Vcheshire_testharness> top) {
     top->jtag_tck = 1;
     for (int i = 0; i < clk_ratio; i++) {
         top->clk_i = 1;
-        if (main_time % 3000 == 0) top->rtc_i ^= 1;
+        if (main_time % 1500000 == 0) top->rtc_i ^= 1;
         //printf("tick\n");
         top->eval();
         main_time += 2500;
         top->clk_i = 0;
-        if (main_time % 3000 == 0) top->rtc_i ^= 1;
+        if (main_time % 1500000 == 0) top->rtc_i ^= 1;
         top->eval();
         main_time += 2500;
     }
@@ -62,11 +62,11 @@ static void cycle_end(std::shared_ptr<Vcheshire_testharness> top) {
     top->jtag_tck = 0;
     for (int i = 0; i < clk_ratio; i++) {
         top->clk_i = 1;
-        if (main_time % 3000 == 0) top->rtc_i ^= 1;
+        if (main_time % 1500000 == 0) top->rtc_i ^= 1;
         top->eval();
         main_time += 2500;
         top->clk_i = 0;
-        if (main_time % 3000 == 0) top->rtc_i ^= 1;
+        if (main_time % 1500000 == 0) top->rtc_i ^= 1;
         top->eval();
         main_time += 2500;
     }
@@ -152,9 +152,10 @@ static void readwrite_bits (std::shared_ptr<Vcheshire_testharness> top, unsigned
     top->jtag_tdi = wdata[i];
     if (i == (size - 1)) top->jtag_tms = tms_last;
     
+    cycle_start(top);
     rdata[(size - 1) - i] = top->jtag_tdo;
     //printf("%d [readwrite_bits] jtag_tdi: %d, jtag_tms: %d, jtag_tdo: %d, rdata: %d, wdata: %d\n", i, top->jtag_tdi, top->jtag_tms, top->jtag_tdo, rdata[(size - 1) - i], wdata[i]);
-    wait_cycles(top, 1);
+    cycle_end(top);
 
   }
   top->jtag_tms = 0;
@@ -193,20 +194,10 @@ static void set_ir(std::shared_ptr<Vcheshire_testharness> top, unsigned int* opc
 static void get_idcode(std::shared_ptr<Vcheshire_testharness> top, unsigned int* IDCODE, unsigned int* rdata_32){
   unsigned int wdata[32];
   int size = 32;
-  
-  printf("\nIDCODE: ");
-  for(int i = 0; i < 32; i++){
-    wdata[i] = 0;
-    //printf("%d", IDCode[i]);
-  }
-  //printf("\n");
+  for(int i = 0; i < 32; i++) wdata[i] = 0;
   set_ir(top, IDCODE, 5);
   shift_dr(top);
   readwrite_bits(top, rdata_32, wdata, 0, size);
-  for(int i = 0; i < 32; i++){
-  //  printf("%d", rdata_32[i]);
-  }
-  //printf("\n");
   update_dr(top, 1);
 }
 
@@ -285,61 +276,45 @@ static void write_dmi(std::shared_ptr<Vcheshire_testharness> top, unsigned int* 
 }
 
 static void read_dmi(std::shared_ptr<Vcheshire_testharness> top, unsigned int* address, int wait_idle, unsigned int* rdata_41){
-  unsigned int rdata[41];
   unsigned int write_data[41];
   unsigned int DMIACCESS[5] = {1, 0, 0, 0, 1};
-  //printf("\n");
-  for (int i = 0; i < 7; i++){
-    write_data[i] = address[i];
-  }
-  for (int i = 0; i < 32; i++){
-    write_data[i+7] = 0;
-
-  }
+  for (int i = 0; i < 7; i++) write_data[i] = address[i];
+  for (int i = 0; i < 32; i++) write_data[i+7] = 0;
   write_data[39] = 0;
   write_data[40] = 1;
 
-  for (int i = 0; i < 41; i++){
-    //printf("%d", write_data[i]);
-    rdata[i] = 0;
-  }
-  //printf("\n");
-  
   set_ir(top, DMIACCESS, 5);
   shift_dr(top);
   write_bits(top, write_data, 1, 41);
   update_dr(top, 0);
   wait_cycles(top, wait_idle);
-  shift_dr(top);
   write_data[40] = 0;
+  shift_dr(top);
   readwrite_bits(top, rdata_41, write_data, 1, 41);
-
-  //printf("\n");
   update_dr(top, 0);
-  //for (int i = 0; i < 41; i++) printf("%d", data_out[i]);
-  //printf("\n");
-
 }
 
 int main(int argc, char **argv) {
 
     unsigned int idcode_input[5];
-    unsigned int set_dmactive[32];
-    unsigned int set_sbcs[32];
+
+    
     for (int i = 0; i < 5; i++) idcode_input[i] = 0;
     idcode_input[4] = 1;
-    for (int i = 0; i < 32; i++) set_dmactive[i] = 0;
+    /*for (int i = 0; i < 32; i++) set_dmactive[i] = 0;
     set_dmactive[31] = 1;
-    for (int i = 0; i < 32; i++) set_sbcs[i] = 0;
+    for (int i = 0; i < 32; i++) printf("%d", set_dmactive[i]);*/
+    printf("\n");
+    
     unsigned int got_idcode[32];
     unsigned int got_dmi[32];
     unsigned int got_sbcs[32];
 
-    unsigned int DMControl[7] = {0, 0, 1, 0, 0, 0, 0};
+    unsigned int Data0[7] = {0, 0, 0, 0, 1, 0, 0};
+    unsigned int Data1[7] = {0, 0, 0, 0, 1, 0, 1};
     unsigned int DMStatus[7] = {0, 0, 1, 0, 0, 0, 1};
     unsigned int AbstractCS[7] = {0, 0, 1, 0, 1, 1, 0};
     unsigned int Command[7] = {0, 0, 1, 0, 1, 1, 1};
-    unsigned int SBCS[7] = {0, 1, 1, 1, 0, 0, 0};
     unsigned int SBAddress0[7] = {0, 1, 1, 1, 0, 0, 1};
     unsigned int SBAddress1[7] = {0, 1, 1, 1, 0, 1, 0};
     unsigned int SBData0[7] = {0, 1, 1, 1, 1, 0, 0};
@@ -363,14 +338,15 @@ int main(int argc, char **argv) {
     htif_hexwriter_t htif(0x0, 1, -1);
     memif_t memif(&htif);
     reg_t entry;
-    load_elf(htif_argv[1], &memif, &entry);
+    //load_elf(htif_argv[1], &memif, &entry);
 
     size_t mem_size = 0xFFFFFF;
-    memif.read(0x80000000, mem_size, (void *)top->rootp->cheshire_testharness__DOT__i_cheshire__DOT__gen_llc__DOT__i_llc__DOT__i_axi_llc_top_raw__DOT__i_llc_ways__DOT__gen_data_ways__BRA__0__KET____DOT__i_data_way__DOT__i_data_sram__DOT__sram.data());
-    printf("%d", memif); 
+    //memif.read(0x80000000, mem_size, (void *)top->rootp->cheshire_testharness__DOT__i_cheshire__DOT__gen_llc__DOT__i_llc__DOT__i_axi_llc_top_raw__DOT__i_llc_ways__DOT__gen_data_ways__BRA__0__KET____DOT__i_data_way__DOT__i_data_sram__DOT__sram.data());
+    //printf("%d", memif); 
     unsigned int binaryin[64];
     //for (int i = 0; i < 64; i++) binaryin[i] = memif[i];
-
+    //for (int i = 0; i < 32; i++) printf("%d", set_dmactive[i]);
+    
     // reset
     for (int i = 0; i < 10; i++) {
         top->rst_ni = 0;
@@ -400,11 +376,21 @@ int main(int argc, char **argv) {
         got_idcode[4] != IDCode[4] || got_idcode[12] != IDCode[12] || got_idcode[20] != IDCode[20] || got_idcode[28] != IDCode[28] || 
         got_idcode[5] != IDCode[5] || got_idcode[13] != IDCode[13] || got_idcode[21] != IDCode[21] || got_idcode[29] != IDCode[29] || 
         got_idcode[6] != IDCode[6] || got_idcode[14] != IDCode[14] || got_idcode[22] != IDCode[22] || got_idcode[30] != IDCode[30] || 
-        got_idcode[7] != IDCode[7] || got_idcode[15] != IDCode[15] || got_idcode[23] != IDCode[23] || got_idcode[31] != IDCode[31]) printf("\n[JTAG] IDCode Mismatch\n[IDCODE TEST FAILED]");
+        got_idcode[7] != IDCode[7] || got_idcode[15] != IDCode[15] || got_idcode[23] != IDCode[23] || got_idcode[31] != IDCode[31]) {
+          printf("\n[JTAG] IDCode Mismatch\n[IDCODE TEST FAILED]\n");
+          return 0;
+        }
     else printf("\nIDCode is correct\n[IDCODE TEST PASSED]\n");
     printf("\n");
 
+    unsigned int DMControl[7] = {0, 0, 1, 0, 0, 0, 0};
+    unsigned int set_dmactive[32];
+    for (int i = 0; i < 32; i++) set_dmactive[i] = 0;
+    set_dmactive[31] = 1;
+    //for (int i = 0; i < 32; i++) printf("%d", set_dmactive[i]);
     write_dmi(top, DMControl, set_dmactive);
+    //printf("\n");
+    //for (int i = 0; i < 32; i++) printf("%d", set_dmactive[i]);
     do {
         read_dmi(top, DMControl, 10, rdata_41);
         for (int i = 0; i < 32; i++) got_dmi[i] = rdata_41[i + 7];
@@ -421,7 +407,7 @@ int main(int argc, char **argv) {
             got_dmi[6] != set_dmactive[6] || got_dmi[14] != set_dmactive[14] || got_dmi[22] != set_dmactive[22] || got_dmi[30] != set_dmactive[30] ||
             got_dmi[7] != set_dmactive[7] || got_dmi[15] != set_dmactive[15] || got_dmi[23] != set_dmactive[23] || got_dmi[31] != set_dmactive[31]) {
             printf("\nDMControl is not on dmactive");
-            break;
+            
         }
         else {
         printf("\nDMControl in on dmactive\n[DMCONTROL TEST PASSED]\n");
@@ -430,45 +416,75 @@ int main(int argc, char **argv) {
     } while(true);
     printf("\n");
     
+    unsigned int SBCS[7] = {0, 1, 1, 1, 0, 0, 0};
+    unsigned int set_sbcs[32];
+    for (int i = 0; i < 32; i++) set_sbcs[i] = 0;
+    //set_sbcs[2] = 1;
     set_sbcs[11] = 1; 
+    //set_sbcs[12] = 1;
     set_sbcs[13] = 1;
     set_sbcs[15] = 1;
-    set_sbcs[14] = 1;
+    //set_sbcs[14] = 1;
     set_sbcs[16] = 1;
+    //set_sbcs[17] = 1;
+    //set_sbcs[20] = 1;
+    //set_sbcs[31] = 1;
+    //set_sbcs[30] = 1;
+    //set_sbcs[29] = 1;
+    //set_sbcs[28] = 1;
+    //set_sbcs[27] = 1;
     wait_cycles(top, 5);
     write_dmi(top, SBCS, set_sbcs);
     wait_cycles(top, 5);
+    //for (int i = 0; i < 7; i++) printf("%d", SBCS[i]);
+    //printf("\n");
+    //for (int i = 0; i < 32; i++) printf("%d", set_sbcs[i]);
+    //printf("\n");
 
     do {
         read_dmi(top, SBCS, 10, rdata_41);
+        wait_cycles(top, 5);
         for (int i = 0; i < 32; i++) got_dmi[i] = rdata_41[i + 7];
         for (int i = 0; i < 32; i++) printf("%d", got_dmi[i]);
-        wait_cycles(top, 5);
-
         printf("\ntest\n");
     } while (got_dmi[10] == 1);
+
+
 
     int counter = 0;
     unsigned int data_in[32];
     for (int i = 0; i < 32; i++) data_in[i] = 0;
-    //data_in[27] = 1;
-    //data_in[28] = 1;
-    //data_in[29] = 1;
+    data_in[6] = 1;
+    for (int i = 0; i < 32; i++) printf("%d", data_in[i]);
+    printf("\n");
     write_dmi(top, SBCS, set_sbcs);
     wait_cycles(top, 5);
     write_dmi(top, SBAddress0, data_in);
     wait_cycles(top, 5);
-  
-    /*do {
+    printf("\n");
+    do {
         read_dmi(top, SBData0, 10, rdata_41);
         //for (int i = 0; i < 41; i++) printf("%d", rdata_41[i]);
         //printf("\n");
         wait_cycles(top, 5);
         for (int i = 0; i < 32; i++) got_dmi[i] = rdata_41[i + 7];
+        printf("[%d] ", counter);
         for (int i = 0; i < 32; i++) printf("%d", got_dmi[i]);
         printf("\n");  
         counter += 1;
-    } while (counter < 10);*/
+    } while (counter < 9);
+
+    set_sbcs[11] = 0;
+    set_sbcs[15] = 0;
+
+    write_dmi(top, SBCS, set_sbcs);
+    wait_cycles(top, 5);
+    read_dmi(top, SBData0, 10, rdata_41);
+    wait_cycles(top, 5);
+    for (int i = 0; i < 32; i++) got_dmi[i] = rdata_41[i + 7];
+    printf("[%d] ", counter);
+    for (int i = 0; i < 32; i++) printf("%d", got_dmi[i]);
+    printf("\n");  
 
     //run binary
     /*unsigned int dm_data[32] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
@@ -484,10 +500,10 @@ int main(int argc, char **argv) {
     printf("\n[JTAG] writing start address to register\n");
 
     for (int i = 0; i < 32; i++) dm_data[i] = mem_size[i];
-    write_dmi(top, SBData1, dm_data);
+    write_dmi(top, Data1, dm_data);
 
     for (int i = 0; i < 32; i++) dm_data[i] = mem_size[i + 32];
-    write_dmi(top, SBData0, dm_data);
+    write_dmi(top, Data0, dm_data);
 
     write_dmi(top, Command, cmdentry);
 

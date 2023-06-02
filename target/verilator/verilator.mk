@@ -23,7 +23,7 @@ include $(CHS_ROOT)/target/verilator/tools.mk
 
 VERILATOR_FLAGS += --cc --no-timing
 VERILATOR_FLAGS += --error-limit 4419 --unroll-count 256 -Wno-fatal
-VERILATOR_FLAGS += -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-WIDTHCONCAT -Wno-PINMISSING -Wno-MODDUP -Wno-UNOPTFLAT -Wno-BLKANDNBLK -Wno-UNUSED -Wno-ASCRANGE
+VERILATOR_FLAGS += -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-WIDTHCONCAT -Wno-PINMISSING -Wno-MODDUP -Wno-UNOPTFLAT -Wno-BLKANDNBLK -Wno-UNUSED #-Wno-ASCRANGE
 VERILATOR_EXE += --exe cheshire.cpp
 
 VERILATOR_CFILES += $(VERILATOR_SRC_PATH)/cheshire.cpp
@@ -78,3 +78,9 @@ chs-verilate: chs-verilate-pickle
 
 chs-verilate-run: chs-verilate
 	$(CHS_ROOT)/target/verilator/obj_dir/Vcheshire_testharness
+
+sim:
+	cd $(CHS_ROOT)/target/verilator/obj_dir && $(MAKE) -f Vcheshire_testharness.mk Vcheshire_testharness
+
+run:
+	$(CHS_ROOT)/target/verilator/obj_dir/Vcheshire_testharness sw/tests/helloworld.spm.elf
